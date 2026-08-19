@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RideGuard AI - Real-Time Safety Monitor</title>
+  
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: rgba(255, 255, 255, 0.75);
+      --card-border: rgba(15, 23, 42, 0.08);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --accent-cyan: #0ea5e9;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --glow-cyan: rgba(14, 165, 233, 0.15);
+      --glow-red: rgba(239, 68, 68, 0.15);
+      --font-outfit: 'Outfit', sans-serif;
+      --font-inter: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(239, 68, 68, 0.05) 0px, transparent 50%);
+      color: var(--text-primary);
+      font-family: var(--font-inter);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 2rem;
+    }
+
+    header {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-logo i {
+      font-size: 1.8rem;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    .header-logo h1 {
+      font-family: var(--font-outfit);
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .header-logo h1 span {
+      background: linear-gradient(90deg, var(--accent-cyan), #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-notice {
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.2);
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+    }
+
+    .main-container {
+      max-width: 1400px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    /* Glassmorphism Cards */
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      transition: background 0.3s ease;
+    }
+
+    /* Grid layout for top metrics */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .metric-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .metric-icon {
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      background: rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(15, 23, 42, 0.03);
+    }
+
+    .metric-info {
+      flex: 1;
+    }
+
+    .metric-title {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      font-family: var(--font-outfit);
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    /* Status Specifics */
+    .status-safe .metric-icon {
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.1);
+      border-color: rgba(0, 240, 255, 0.2);
+    }
+    .status-safe::before {
+      background: var(--accent-cyan);
+    }
+
+    .status-anomaly .metric-icon {
+      color: var(--accent-red);
+      background: rgba(255, 42, 95, 0.1);
+      border-color: rgba(255, 42, 95, 0.2);
+      animation: alert-glow-border 1.5s infinite alternate;
+    }
+    .status-anomaly::before {
+      background: var(--accent-red);
+    }
+
+    @keyframes alert-glow-border {
+      0% { box-shadow: 0 0 5px rgba(255, 42, 95, 0.2); }
+      100% { box-shadow: 0 0 20px rgba(255, 42, 95, 0.6); }
+    }
+
+    .connected-link .metric-icon {
+      color: var(--accent-green);
+      background: rgba(0, 230, 118, 0.1);
+    }
+    .disconnected-link .metric-icon {
+      color: var(--text-secondary);
+      background: rgba(15, 23, 42, 0.03);
+    }
+
+    /* Dashboard Layout */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-container {
+      height: 420px;
+      position: relative;
+      margin-top: 1rem;
+    }
+
+    /* Simulator Controls */
+    .simulator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .simulator-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .slider-group {
+      margin-bottom: 0.8rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .slider-title {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .slider-value {
+      font-family: var(--font-outfit);
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .slider-input {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(15, 23, 42, 0.08);
+      outline: none;
+    }
+
+    .slider-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .slider-input::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    /* Preset Buttons */
+    .presets-container {
+      margin-top: 0.5rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .preset-btn {
+      background: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      color: var(--text-primary);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .preset-btn:hover {
+      background: rgba(0, 240, 255, 0.1);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+    }
+
+    .preset-anomaly:hover {
+      background: rgba(255, 42, 95, 0.1);
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+      box-shadow: 0 0 8px rgba(255, 42, 95, 0.2);
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-outfit);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn-inject {
+      background: linear-gradient(135deg, var(--accent-cyan), #9333ea);
+      color: white;
+      box-shadow: 0 4px 15px rgba(0, 240, 255, 0.25);
+    }
+
+    .btn-inject:hover {
+      box-shadow: 0 6px 20px rgba(0, 240, 255, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid rgba(255, 42, 95, 0.4);
+      color: var(--accent-red);
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      padding: 0.5rem;
+    }
+
+    .btn-clear:hover {
+      background: rgba(255, 42, 95, 0.1);
+      border-color: var(--accent-red);
+    }
+
+    /* Alerts Ticker */
+    .alerts-ticker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .alerts-ticker-list {
+      max-height: 480px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding-right: 0.25rem;
+    }
+
+    /* Custom Scrollbar */
+    .alerts-ticker-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .alerts-ticker-list::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.02);
+    }
+    .alerts-ticker-list::-webkit-scrollbar-thumb {
+      background: rgba(15, 23, 42, 0.1);
+      border-radius: 3px;
+    }
+    .alerts-ticker-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(15, 23, 42, 0.2);
+    }
+
+    .alert-item {
+      background: rgba(15, 23, 42, 0.02);
+      border: 1px solid rgba(255, 42, 95, 0.15);
+      border-left: 4px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      animation: slide-in 0.3s ease;
+      box-shadow: 0 4px 6px rgba(15, 23, 42, 0.04);
+    }
+
+    @keyframes slide-in {
+      from { transform: translateX(20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .alert-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-time {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .alert-prob {
+      font-family: var(--font-outfit);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent-red);
+      background: rgba(255, 42, 95, 0.1);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .alert-item-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 0.4rem;
+    }
+
+    .alert-val span {
+      font-family: var(--font-outfit);
+      color: var(--text-primary);
+    }
+
+    .no-alerts {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .no-alerts i {
+      font-size: 2.2rem;
+      color: var(--text-secondary);
+      opacity: 0.4;
+    }
+
+    /* Probability Meter */
+    .prob-meter-wrapper {
+      margin-top: 1.2rem;
+    }
+
+    .prob-meter-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .prob-meter-container {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .prob-meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-red));
+      border-radius: 5px;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-logo">
+      <i class="fa-solid fa-shield-halved"></i>
+      <h1>RideGuard <span>AI</span></h1>
+    </div>
+    
+    <div class="status-notice">
+      <i class="fa-solid fa-satellite-dish"></i>
+      <span>Live Monitoring Active</span>
+    </div>
+  </header>
+
+  <div class="main-container">
+    
+    <!-- Top metrics grid -->
+    <div class="metrics-grid">
+      
+      <!-- Current State Card -->
+      <div id="status-card" class="glass-card metric-card status-safe">
+        <div class="metric-icon">
+          <i id="status-icon" class="fa-solid fa-circle-check"></i>
+        </div>
+        <div class="metric-info">
+          <div class="metric-title">System Status</div>
+          <div id="status-value" class="metric-value">SAFE</div>
+        </div>
+      </div>
+      
+      <!-- WebSocket State Card -->
+      <div id="websocket-card" class="glass-card metric-card disconnected-link">
+        <div class="metric-icon">
+          <i id="websocket-icon" class="fa-solid fa-link-slash"></i>
+        </div>
+        <div class="metric-info">
+          <div class="metric-title">WebSocket Link</div>
+          <div id="websocket-value" class="metric-value">DISCONNECTED</div>
+        </div>
+      </div>
+
+      <!-- Total Records Card -->
+      <div class="glass-card metric-card">
+        <div class="metric-icon" style="color: var(--accent-cyan);">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <div class="metric-info">
+          <div class="metric-title">Telemetry Records</div>
+          <div id="total-records-value" class="metric-value">0</div>
+        </div>
+      </div>
+
+      <!-- Total Alerts Card -->
+      <div class="glass-card metric-card">
+        <div class="metric-icon" style="color: var(--accent-red);">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="metric-info">
+          <div class="metric-title">Anomaly Events</div>
+          <div id="total-alerts-value" class="metric-value">0</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Dashboard Section -->
+    <div class="dashboard-layout">
+      
+      <!-- Left side: Live Chart & Simulator -->
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Live Chart Card -->
+        <div class="glass-card">
+          <h2 style="font-family: var(--font-outfit); font-size: 1.25rem; font-weight: 600;">
+            <i class="fa-solid fa-chart-line" style="color: var(--accent-cyan); margin-right: 0.5rem;"></i>
+            Live Telemetry Graph
+          </h2>
+          <div class="chart-container">
+            <canvas id="telemetryChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Telemetry Simulator Card -->
+        <div class="glass-card">
+          <h2 style="font-family: var(--font-outfit); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fa-solid fa-sliders" style="color: var(--accent-cyan); margin-right: 0.5rem;"></i>
+            Interactive Sensor Simulator
+          </h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Inject telemetry values directly into the server to test predictions and WebSocket updates. Use presets to instantly load historical riding events.
+          </p>
+
+          <!-- Simulator presets -->
+          <div class="presets-container">
+            <span style="font-size: 0.8rem; display: flex; align-items: center; margin-right: 0.25rem; color: var(--text-secondary);">Presets:</span>
+            <button class="preset-btn" onclick="loadPreset('normal')">Normal Riding</button>
+            <button class="preset-btn preset-anomaly" onclick="loadPreset('braking')">Sudden Braking</button>
+            <button class="preset-btn preset-anomaly" onclick="loadPreset('turn')">Sharp Turn</button>
+            <button class="preset-btn preset-anomaly" onclick="loadPreset('bump')">Speed Bump</button>
+            <button class="preset-btn preset-anomaly" onclick="loadPreset('crash')">Major Crash</button>
+          </div>
+
+          <form id="simulator-form" onsubmit="event.preventDefault(); injectTelemetry();">
+            <div class="simulator-grid">
+              
+              <!-- Accelerometers -->
+              <div>
+                <h3 style="font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem; margin-bottom: 0.8rem; color: var(--accent-cyan);">Accelerometer (m/s²)</h3>
+                
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <span class="slider-title">Acc X</span>
+                    <span id="val-acc-x" class="slider-value">0.00</span>
+                  </div>
+                  <input type="range" id="input-acc-x" min="-20" max="20" step="0.01" value="0.00" class="slider-input" oninput="updateSliderLabel('acc-x', this.value)">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <span class="slider-title">Acc Y</span>
+                    <span id="val-acc-y" class="slider-value">0.00</span>
+                  </div>
+                  <input type="range" id="input-acc-y" min="-20" max="20" step="0.01" value="0.00" class="slider-input" oninput="updateSliderLabel('acc-y', this.value)">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <span class="slider-title">Acc Z</span>
+                    <span id="val-acc-z" class="slider-value">9.80</span>
+                  </div>
+                  <input type="range" id="input-acc-z" min="-20" max="30" step="0.01" value="9.80" class="slider-input" oninput="updateSliderLabel('acc-z', this.value)">
+                </div>
+              </div>
+
+              <!-- Gyroscopes -->
+              <div>
+                <h3 style="font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem; margin-bottom: 0.8rem; color: #a855f7;">Gyroscope (°/s)</h3>
+                
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <span class="slider-title">Gyro X</span>
+                    <span id="val-gyro-x" class="slider-value">0.00</span>
+                  </div>
+                  <input type="range" id="input-gyro-x" min="-360" max="360" step="0.01" value="0.00" class="slider-input" oninput="updateSliderLabel('gyro-x', this.value)">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <span class="slider-title">Gyro Y</span>
+                    <span id="val-gyro-y" class="slider-value">0.00</span>
+                  </div>
+                  <input type="range" id="input-gyro-y" min="-360" max="360" step="0.01" value="0.00" class="slider-input" oninput="updateSliderLabel('gyro-y', this.value)">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <span class="slider-title">Gyro Z</span>
+                    <span id="val-gyro-z" class="slider-value">0.00</span>
+                  </div>
+                  <input type="range" id="input-gyro-z" min="-360" max="360" step="0.01" value="0.00" class="slider-input" oninput="updateSliderLabel('gyro-z', this.value)">
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Probability Meter indicator for live feedback -->
+            <div class="prob-meter-wrapper">
+              <div class="prob-meter-header">
+                <span style="color: var(--text-secondary); font-weight: 500;">Predictive Anomaly Probability</span>
+                <span id="live-prob-value" style="font-family: var(--font-outfit); font-weight: 600; color: var(--accent-cyan)">0.0%</span>
+              </div>
+              <div class="prob-meter-container">
+                <div id="live-prob-fill" class="prob-meter-fill"></div>
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+              <button type="submit" class="btn btn-inject" style="flex: 1;">
+                <i class="fa-solid fa-paper-plane"></i> Inject Telemetry
+              </button>
+              <button type="button" id="btn-toggle-sim" class="btn" style="flex: 1; background: rgba(15, 23, 42, 0.05); border: 1px solid rgba(15, 23, 42, 0.1); color: var(--text-primary);" onclick="toggleLiveSimulation()">
+                <i class="fa-solid fa-play"></i> Auto Simulate
+              </button>
+            </div>
+          </form>
+          
+          <button class="btn btn-clear" onclick="clearDB()">
+            <i class="fa-solid fa-trash-can"></i> Clear Readings Database
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right side: Real-time Alert Ticker -->
+      <div class="glass-card" style="display: flex; flex-direction: column; justify-content: flex-start; height: 100%;">
+        <div class="alerts-ticker-header">
+          <h2 style="font-family: var(--font-outfit); font-size: 1.25rem; font-weight: 600;">
+            <i class="fa-solid fa-bell-exclamation" style="color: var(--accent-red); margin-right: 0.5rem;"></i>
+            Anomaly Alert Log
+          </h2>
+        </div>
+        
+        <div id="alerts-list" class="alerts-ticker-list">
+          <div class="no-alerts">
+            <i class="fa-solid fa-satellite-dish"></i>
+            <span>Monitoring active sensor feeds.<br>Awaiting anomalous activity...</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Dashboards Client Logic Scripts -->
+  <script src="chart.js"></script>
+  <script src="alerts.js"></script>
+</body>
+</html>
